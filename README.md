@@ -11,7 +11,7 @@ spread.
 
 ![Tests passed vs tokens per second, five models on a GB10 box](results/gb10/compile-bench-gb10.png)
 
-
+## What it does
 
 - Six tasks, one per language: Rust, C++, Python, Go, TypeScript, React.
   Each task is a prompt with a fixed function signature and a hidden test.
