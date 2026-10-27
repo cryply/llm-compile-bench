@@ -9,7 +9,9 @@ something a machine can check: does the generated code compile, and do the
 tests pass? This harness asks exactly that, several times, and reports the
 spread.
 
-## What it does
+![Tests passed vs tokens per second, five models on a GB10 box](results/gb10/compile-bench-gb10.png)
+
+
 
 - Six tasks, one per language: Rust, C++, Python, Go, TypeScript, React.
   Each task is a prompt with a fixed function signature and a hidden test.
