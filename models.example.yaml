@@ -4,8 +4,8 @@
 models:
   nemotron35:
     endpoint: http://localhost:11434/v1
-    model: nemotron35
-    after:  ["ollama stop nemotron35"]
+    model: hf.co/vcruz305/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-GGUF:IQ4_NL
+    after:  ["ollama stop hf.co/vcruz305/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-GGUF:IQ4_NL"]
   qwen38:
     endpoint: http://localhost:11434/v1
     model: qwen3.8:27b
@@ -31,5 +31,11 @@ models:
 # общие параметры запроса
 request:
   temperature: 0.2
-  max_tokens: 8000
+  max_tokens: 32000
   timeout_s: 1800
+
+# На время прогона — стоп внешним потребителям Ollama: infopoint каждые
+# 30 мин грузил модель поверх DeepSeek, 27.10 это повесило машину.
+run:
+  before: ["systemctl --user stop agent-infopoint.timer agent-defi-yields.timer"]
+  after:  ["systemctl --user start agent-infopoint.timer agent-defi-yields.timer"]

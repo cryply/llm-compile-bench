@@ -1,12 +1,27 @@
 #!/usr/bin/env python3
-import csv, sys
+"""Сводка по одному или нескольким results_*.csv.
+С несколькими файлами считает N прогонов на модель: pass как k/N*6,
+wall как медиана и min..max — разброс важнее среднего."""
+import csv, statistics, sys
 from collections import defaultdict
-rows = list(csv.DictReader(open(sys.argv[1])))
-agg = defaultdict(lambda: {"n": 0, "c": 0, "t": 0, "wall": 0.0, "toks": []})
+
+rows = [r for f in sys.argv[1:] for r in csv.DictReader(open(f))]
+by = defaultdict(list)
 for r in rows:
-    a = agg[r["model"]]; a["n"] += 1; a["c"] += int(r["compile"]); a["t"] += int(r["tests"])
-    a["wall"] += float(r["wall_s"]); a["toks"].append(float(r["tok_s"]))
-print(f"\n{'model':12} {'compile':>8} {'tests':>7} {'avg wall':>9} {'avg tok/s':>10}")
-for m, a in agg.items():
-    ts = sum(a["toks"]) / len(a["toks"]) if a["toks"] else 0
-    print(f"{m:12} {a['c']:>3}/{a['n']:<4} {a['t']:>3}/{a['n']:<3} {a['wall']/a['n']:>8.0f}s {ts:>10.1f}")
+    by[r["model"]].append(r)
+
+print("| Model | Compiles | Tests pass | Wall median | Wall min..max | Wall-to-pass | tok/s | Flaky tasks |")
+print("|---|---|---|---|---|---|---|---|")
+for m, rs in sorted(by.items(), key=lambda kv: -sum(int(r["tests"]) for r in kv[1]) / len(kv[1])):
+    n = len(rs)
+    c = sum(int(r["compile"]) for r in rs); t = sum(int(r["tests"]) for r in rs)
+    walls = [float(r["wall_s"]) for r in rs]
+    passed = [float(r["wall_s"]) for r in rs if r["tests"] == "1"]
+    toks = statistics.mean(float(r["tok_s"]) for r in rs)
+    # задача «плавает», если в разных прогонах и проходила, и нет
+    per = defaultdict(list)
+    for r in rs: per[r["prompt"]].append(r["tests"] == "1")
+    flaky = ", ".join(f"{p} {sum(v)}/{len(v)}" for p, v in sorted(per.items()) if 0 < sum(v) < len(v))
+    print(f"| {m} | {c}/{n} | {t}/{n} | {statistics.median(walls):.0f} s "
+          f"| {min(walls):.0f}..{max(walls):.0f} s | "
+          f"{statistics.mean(passed) if passed else float('nan'):.0f} s | {toks:.0f} | {flaky or 'none'} |")

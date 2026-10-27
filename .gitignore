@@ -1,3 +1,10 @@
-results/
 work/
 ts/node_modules/
+.venv/
+__pycache__/
+models.yaml
+*.log
+*.bak
+models.yaml
+results/*/*.md
+results/*/*.log
