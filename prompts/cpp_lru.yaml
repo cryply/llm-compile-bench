@@ -1,0 +1,22 @@
+lang: cpp
+prompt: |
+  Напиши на C++20 header-only класс `template<class K, class V> class LruCache` с конструктором `explicit LruCache(size_t capacity)`,
+  методами `std::optional<V> get(const K&)` (обновляет recency), `void put(const K&, const V&)` (вытесняет самый старый при переполнении),
+  `size_t size() const`. O(1) на операцию (std::list + std::unordered_map). Только один блок кода — содержимое заголовка solution.hpp,
+  со всеми #include, без main и пояснений.
+files:
+  test: |
+    #include "solution.hpp"
+    #include <cassert>
+    #include <string>
+    int main() {
+      LruCache<int, std::string> c(2);
+      c.put(1, "a"); c.put(2, "b");
+      assert(c.get(1).value() == "a");
+      c.put(3, "c");                 // вытесняет 2
+      assert(!c.get(2).has_value());
+      assert(c.get(3).value() == "c");
+      assert(c.size() == 2);
+      c.put(1, "z"); assert(c.get(1).value() == "z"); assert(c.size() == 2);
+      return 0;
+    }

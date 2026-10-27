@@ -1,0 +1,17 @@
+lang: rust
+cargo_deps: ""
+prompt: |
+  Напиши на Rust без внешних зависимостей публичную функцию
+  `pub fn parse_iso8601(s: &str) -> Result<DateTime, String>` и `#[derive(Debug, PartialEq)] pub struct DateTime { pub year: i32, pub month: u32, pub day: u32, pub hour: u32, pub minute: u32, pub second: u32, pub offset_seconds: i32 }`.
+  Поддержать: `YYYY-MM-DD`, `YYYY-MM-DDTHH:MM:SS`, суффиксы `Z`, `+HH:MM`, `-HH:MM`; дробные секунды игнорировать;
+  проверять диапазоны и високосные годы. Верни только один блок кода с содержимым lib.rs, без main и без пояснений.
+files:
+  test: |
+    use bench::*;
+    #[test] fn date_only() { let d = parse_iso8601("2024-02-29").unwrap(); assert_eq!((d.year,d.month,d.day,d.hour), (2024,2,29,0)); }
+    #[test] fn with_tz() { let d = parse_iso8601("2023-05-12T14:30:45+03:00").unwrap(); assert_eq!(d.hour,14); assert_eq!(d.offset_seconds,10800); }
+    #[test] fn utc_z() { let d = parse_iso8601("2023-05-12T14:30:45Z").unwrap(); assert_eq!(d.offset_seconds,0); }
+    #[test] fn frac() { let d = parse_iso8601("2023-05-12T14:30:45.123Z").unwrap(); assert_eq!(d.second,45); }
+    #[test] fn bad_leap() { assert!(parse_iso8601("1900-02-29").is_err()); }
+    #[test] fn bad_month() { assert!(parse_iso8601("2023-13-01").is_err()); }
+    #[test] fn garbage() { assert!(parse_iso8601("12/05/2023").is_err()); }

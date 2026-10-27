@@ -1,0 +1,20 @@
+lang: typescript
+prompt: |
+  Напиши на TypeScript (strict) `export function debounce<A extends unknown[]>(fn: (...a: A) => void, ms: number): ((...a: A) => void) & { cancel(): void; flush(): void }`.
+  flush — немедленно вызвать с последними аргументами, если вызов ожидает; cancel — отменить. Используй setTimeout/clearTimeout.
+  Только один блок кода, без пояснений и примеров.
+files:
+  test: |
+    import { debounce } from "./solution";
+    import assert from "node:assert/strict";
+    const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+    (async () => {
+      const calls: number[] = [];
+      const d = debounce((x: number) => { calls.push(x); }, 30);
+      d(1); d(2); d(3);
+      await sleep(60); assert.deepEqual(calls, [3]);
+      d(4); d.cancel(); await sleep(60); assert.deepEqual(calls, [3]);
+      d(5); d.flush(); assert.deepEqual(calls, [3, 5]);
+      await sleep(60); assert.deepEqual(calls, [3, 5]);
+      console.log("ok");
+    })();

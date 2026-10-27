@@ -1,0 +1,19 @@
+lang: python
+prompt: |
+  Напиши на Python 3.12 (stdlib only) класс `TokenBucket(capacity: int, refill_per_sec: float, clock=time.monotonic)`
+  с методом `try_acquire(n: int = 1) -> bool`. Бакет стартует полным, пополняется непрерывно по clock(), не превышает capacity.
+  `clock` — инжектируемая функция для тестов. Только один блок кода, без пояснений и без примеров.
+files:
+  test: |
+    from solution import TokenBucket
+    def test_basic():
+        t = [0.0]; clk = lambda: t[0]
+        b = TokenBucket(capacity=3, refill_per_sec=1.0, clock=clk)
+        assert b.try_acquire() and b.try_acquire() and b.try_acquire()
+        assert not b.try_acquire()
+        t[0] = 1.0; assert b.try_acquire(); assert not b.try_acquire()
+        t[0] = 100.0; assert b.try_acquire(3); assert not b.try_acquire()
+    def test_n_too_big():
+        b = TokenBucket(capacity=2, refill_per_sec=1.0, clock=lambda: 0.0)
+        assert not b.try_acquire(5)
+        assert b.try_acquire(2)

@@ -1,0 +1,27 @@
+lang: go
+prompt: |
+  Напиши на Go (stdlib only, package bench) функцию
+  `func ParallelMap[T, R any](ctx context.Context, items []T, workers int, fn func(context.Context, T) (R, error)) ([]R, error)`.
+  Результаты в исходном порядке; при первой ошибке — отмена остальных и возврат этой ошибки; уважать ctx.Done().
+  Только один блок кода с package bench и импортами, без main и пояснений.
+files:
+  test: |
+    package bench
+    import ("context"; "errors"; "testing"; "time")
+    func TestOrder(t *testing.T) {
+      out, err := ParallelMap(context.Background(), []int{1,2,3,4,5}, 3, func(_ context.Context, x int) (int, error) {
+        time.Sleep(time.Duration(6-x) * time.Millisecond); return x * 10, nil })
+      if err != nil { t.Fatal(err) }
+      for i, v := range out { if v != (i+1)*10 { t.Fatalf("order broken: %v", out) } }
+    }
+    func TestErr(t *testing.T) {
+      want := errors.New("boom")
+      _, err := ParallelMap(context.Background(), []int{1,2,3}, 2, func(_ context.Context, x int) (int, error) {
+        if x == 2 { return 0, want }; return x, nil })
+      if !errors.Is(err, want) { t.Fatalf("got %v", err) }
+    }
+    func TestCancel(t *testing.T) {
+      ctx, cancel := context.WithCancel(context.Background()); cancel()
+      _, err := ParallelMap(ctx, []int{1,2,3}, 2, func(c context.Context, x int) (int, error) { <-c.Done(); return 0, c.Err() })
+      if err == nil { t.Fatal("expected error") }
+    }

@@ -1,0 +1,15 @@
+lang: react
+prompt: |
+  Напиши на TypeScript+React 18 (function components, hooks, без внешних библиотек кроме react) компонент
+  `export function Counter(props: { initial?: number; step?: number; onChange?: (v: number) => void }): JSX.Element`
+  с кнопками "-" и "+", отображением значения, вызовом onChange при каждом изменении, и хуком `export function useCounter(initial = 0, step = 1)`
+  возвращающим `{ value, inc, dec, reset }`. Компонент использует хук. Строгая типизация, без any. Только один блок кода .tsx, без пояснений.
+files:
+  test: |
+    import { Counter, useCounter } from "./solution";
+    import type { JSX } from "react";
+    const el: JSX.Element = <Counter initial={2} step={3} onChange={(v: number) => { void v; }} />;
+    void el;
+    type H = ReturnType<typeof useCounter>;
+    const check: (h: H) => number = (h) => h.value;
+    void check;

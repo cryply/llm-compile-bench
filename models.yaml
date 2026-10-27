@@ -1,0 +1,35 @@
+# Каждая модель: endpoint (OpenAI-compatible), имя модели в API,
+# before/after — shell-команды для поднятия/выгрузки.
+# exclusive: true — перед запуском выполняются after всех остальных моделей.
+models:
+  nemotron35:
+    endpoint: http://localhost:11434/v1
+    model: nemotron35
+    after:  ["ollama stop nemotron35"]
+  qwen38:
+    endpoint: http://localhost:11434/v1
+    model: qwen3.8:27b
+    after:  ["ollama stop qwen3.8:27b"]
+  gptoss:
+    endpoint: http://localhost:11434/v1
+    model: gpt-oss:120b
+    exclusive: true
+    after:  ["ollama stop gpt-oss:120b"]
+  qwopus36:
+    endpoint: http://localhost:11435/v1
+    model: qwopus36
+    exclusive: true
+    before: ["systemctl --user start llama-qwopus"]
+    after:  ["systemctl --user stop llama-qwopus"]
+  deepseek:
+    endpoint: http://localhost:11436/v1
+    model: deepseek-v4-flash
+    exclusive: true
+    before: ["systemctl --user start llama-deepseek"]
+    after:  ["systemctl --user stop llama-deepseek"]
+
+# общие параметры запроса
+request:
+  temperature: 0.2
+  max_tokens: 8000
+  timeout_s: 1800
