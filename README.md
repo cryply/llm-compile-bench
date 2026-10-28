@@ -15,6 +15,9 @@ spread.
 
 - Six tasks, one per language: Rust, C++, Python, Go, TypeScript, React.
   Each task is a prompt with a fixed function signature and a hidden test.
+  The prompts are written in Russian; the function signature and the
+  hidden test are language-neutral, so a model that can read the signature
+  can solve the task. Translating the prompts is a welcome PR.
 - Each model gets the prompt through an OpenAI-compatible endpoint
   (Ollama, llama.cpp `llama-server`, anything else that speaks `/v1`).
 - The answer is extracted, written next to the test, and judged by the real

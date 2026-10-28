@@ -34,8 +34,10 @@ request:
   max_tokens: 32000
   timeout_s: 1800
 
-# На время прогона — стоп внешним потребителям Ollama: infopoint каждые
-# 30 мин грузил модель поверх DeepSeek, 27.10 это повесило машину.
+# Once per harness run: stop anything else on the box that might load a
+# model while the benchmark is running. On unified-memory machines two large
+# models side by side hang the box (this is how run 1 died on 27.10.2026).
+# The commands below are the author's own agent timers; replace or delete.
 run:
-  before: ["systemctl --user stop agent-infopoint.timer agent-defi-yields.timer"]
-  after:  ["systemctl --user start agent-infopoint.timer agent-defi-yields.timer"]
+  before: []   # e.g. ["systemctl --user stop my-agent.timer"]
+  after:  []   # e.g. ["systemctl --user start my-agent.timer"]
