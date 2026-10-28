@@ -1,0 +1,30 @@
+lang: react
+prompt: |
+  Напиши на TypeScript+React 18 (hooks, без внешних библиотек кроме react) хук
+  `export function useFetch<T>(url: string | null, parse?: (r: Response) => Promise<T>): FetchState<T>`, где
+  `export type FetchState<T> = { status: "idle"; data?: undefined; error?: undefined } | { status: "loading"; data?: T; error?: undefined } | { status: "success"; data: T; error?: undefined } | { status: "error"; data?: undefined; error: Error }`
+  плюс поле `reload: () => void` в каждом варианте (через пересечение типов). url = null — состояние idle. По умолчанию parse — r.json().
+  Ответ не-2xx — ошибка. При смене url и размонтировании прошлый запрос отменяется через AbortController и не меняет состояние.
+  И компонент `export function UserCard(props: { id: number }): JSX.Element`, который грузит `/api/users/${id}` типа
+  `{ name: string; email: string }` и показывает загрузку, ошибку или данные. Строгая типизация, без any. Только один блок кода .tsx, без пояснений.
+files:
+  test: |
+    import { useFetch, UserCard, type FetchState } from "./solution";
+    import type { JSX } from "react";
+    const el: JSX.Element = <UserCard id={1} />; void el;
+    type S = ReturnType<typeof useFetch<{ n: number }>>;
+    const f = (s: S): number => {
+      s.reload();
+      if (s.status === "success") return s.data.n;
+      if (s.status === "error") return s.error.message.length;
+      return 0;
+    };
+    void f;
+    const g = (s: S) => {
+      // @ts-expect-error data may be undefined before narrowing
+      const n: number = s.data.n; void n;
+      // @ts-expect-error unknown status
+      if (s.status === "done") return;
+    };
+    void g;
+    const st: FetchState<string> = { status: "idle" }; void st;

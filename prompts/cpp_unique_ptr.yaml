@@ -1,0 +1,32 @@
+lang: cpp
+prompt: |
+  Напиши на C++20 header-only собственный умный указатель `template<class T> class UniquePtr` (без std::unique_ptr внутри):
+  конструктор по умолчанию (nullptr), `explicit UniquePtr(T* p)`, move-конструктор и move-присваивание (старый объект удаляется),
+  копирование запрещено, деструктор удаляет объект, `T* get() const`, `T* release()`, `void reset(T* p = nullptr)`,
+  `T& operator*() const`, `T* operator->() const`, `explicit operator bool() const`.
+  И свободную функцию `template<class T, class... Args> UniquePtr<T> make_unique_ptr(Args&&... args)`.
+  Только один блок кода — содержимое заголовка solution.hpp, со всеми #include, без main и пояснений.
+files:
+  test: |
+    #include "solution.hpp"
+    #include <cassert>
+    #include <type_traits>
+    #include <utility>
+    static int alive = 0;
+    struct Obj { int v; explicit Obj(int x) : v(x) { ++alive; } ~Obj() { --alive; } };
+    static_assert(!std::is_copy_constructible_v<UniquePtr<Obj>>);
+    static_assert(!std::is_copy_assignable_v<UniquePtr<Obj>>);
+    static_assert(std::is_nothrow_move_constructible_v<UniquePtr<Obj>> || std::is_move_constructible_v<UniquePtr<Obj>>);
+    static_assert(!std::is_convertible_v<UniquePtr<Obj>, bool>);
+    int main() {
+      { auto p = make_unique_ptr<Obj>(5); assert(alive == 1); assert(p->v == 5); assert((*p).v == 5); assert(p);
+        UniquePtr<Obj> q(std::move(p)); assert(!p); assert(q.get()->v == 5); assert(alive == 1);
+        UniquePtr<Obj> r(new Obj(6)); r = std::move(q); assert(alive == 1); assert(r->v == 5);
+        r.reset(new Obj(7)); assert(alive == 1); assert(r->v == 7);
+        Obj* raw = r.release(); assert(!r); assert(alive == 1); delete raw; assert(alive == 0);
+        r.reset(new Obj(8)); r.reset(); assert(alive == 0);
+        UniquePtr<Obj> e; assert(!e); assert(e.get() == nullptr);
+        auto s = make_unique_ptr<Obj>(9); }
+      assert(alive == 0);
+      return 0;
+    }

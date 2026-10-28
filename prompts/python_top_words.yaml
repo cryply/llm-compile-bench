@@ -1,0 +1,23 @@
+lang: python
+prompt: |
+  Напиши на Python 3.12 (stdlib only) функцию `top_k_words(text: str, k: int) -> list[tuple[str, int]]`.
+  Текст приводится к нижнему регистру; слово — максимальная последовательность символов из `a-z` и апострофа `'`;
+  апострофы в начале и в конце слова отбрасываются, пустые слова игнорируются. Вернуть k самых частых слов
+  как пары (слово, количество), по убыванию количества, при равенстве — по алфавиту. Если слов меньше k — вернуть все.
+  Только один блок кода, без пояснений и без примеров.
+files:
+  test: |
+    from solution import top_k_words
+    def test_basic():
+        assert top_k_words("the cat and the hat. The END", 2) == [("the", 3), ("and", 1)]
+    def test_ties_alpha():
+        assert top_k_words("b a c b a", 3) == [("a", 2), ("b", 2), ("c", 1)]
+    def test_apostrophes():
+        assert top_k_words("Don't 'quote' it's ''' don't", 10) == [("don't", 2), ("it's", 1), ("quote", 1)]
+    def test_non_ascii_split():
+        assert top_k_words("café über naïve", 10) == [("ber", 1), ("caf", 1), ("na", 1), ("ve", 1)]
+        assert top_k_words("x1y x-y", 10) == [("x", 2), ("y", 2)]
+    def test_small():
+        assert top_k_words("", 3) == []
+        assert top_k_words("one", 5) == [("one", 1)]
+        assert top_k_words("a b", 0) == []

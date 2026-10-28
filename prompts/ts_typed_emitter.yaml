@@ -1,0 +1,33 @@
+lang: typescript
+prompt: |
+  Напиши на TypeScript (strict) типобезопасный эмиттер событий
+  `export class TypedEmitter<E extends Record<string, unknown[]>>` с методами:
+  `on<K extends keyof E>(event: K, fn: (...args: E[K]) => void): () => void` (возвращает функцию отписки),
+  `once<K extends keyof E>(event: K, fn: (...args: E[K]) => void): () => void`,
+  `off<K extends keyof E>(event: K, fn: (...args: E[K]) => void): void`,
+  `emit<K extends keyof E>(event: K, ...args: E[K]): number` (возвращает число вызванных обработчиков).
+  Обработчики вызываются в порядке подписки; отписка во время emit не ломает текущую рассылку. Без any.
+  Только один блок кода, без пояснений и примеров.
+files:
+  test: |
+    import { TypedEmitter } from "./solution";
+    import assert from "node:assert/strict";
+    type Ev = { msg: [text: string, n: number]; done: [] };
+    const e = new TypedEmitter<Ev>();
+    const log: string[] = [];
+    const h = (t: string, n: number) => { log.push(`a:${t}${n}`); };
+    e.on("msg", h);
+    const un = e.on("msg", (t) => { log.push(`b:${t}`); un(); });
+    e.once("done", () => { log.push("done"); });
+    assert.equal(e.emit("msg", "x", 1), 2);
+    assert.equal(e.emit("msg", "y", 2), 1);
+    assert.equal(e.emit("done"), 1); assert.equal(e.emit("done"), 0);
+    e.off("msg", h); assert.equal(e.emit("msg", "z", 3), 0);
+    assert.deepEqual(log, ["a:x1", "b:x", "a:y2", "done"]);
+    // @ts-expect-error wrong payload type
+    e.emit("msg", 1, 2);
+    // @ts-expect-error unknown event
+    e.on("nope", () => {});
+    // @ts-expect-error missing argument
+    e.emit("msg", "only");
+    console.log("ok");

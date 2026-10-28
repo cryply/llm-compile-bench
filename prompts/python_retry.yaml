@@ -1,0 +1,39 @@
+lang: python
+prompt: |
+  Напиши на Python 3.12 (stdlib only) декоратор с параметрами
+  `retry(times: int, exceptions: tuple[type[BaseException], ...] = (Exception,), base_delay: float = 0.1, sleep=time.sleep)`.
+  Функция вызывается максимум times раз; если она бросила исключение из exceptions и попытки остались — пауза
+  `sleep(base_delay * 2**i)`, где i — номер неудачной попытки с нуля, и повтор. Когда попытки кончились — пробросить
+  последнее исключение. Исключения не из exceptions пробрасываются сразу, без повторов. Сохранять __name__ и __doc__ (functools.wraps).
+  `sleep` — инжектируемая функция для тестов. Только один блок кода, без пояснений и без примеров.
+files:
+  test: |
+    import pytest
+    from solution import retry
+    def test_succeeds_after_failures():
+        delays, calls = [], []
+        @retry(times=4, base_delay=0.5, sleep=delays.append)
+        def f(x):
+            calls.append(x)
+            if len(calls) < 3: raise IOError("flaky")
+            return x * 2
+        assert f(21) == 42 and len(calls) == 3 and delays == [0.5, 1.0]
+    def test_gives_up():
+        delays, calls = [], []
+        @retry(times=3, exceptions=(ValueError,), base_delay=1, sleep=delays.append)
+        def g():
+            calls.append(1); raise ValueError(len(calls))
+        with pytest.raises(ValueError) as e: g()
+        assert e.value.args == (3,) and delays == [1, 2]
+    def test_other_exception_not_retried():
+        delays, calls = [], []
+        @retry(times=5, exceptions=(ValueError,), sleep=delays.append)
+        def h():
+            calls.append(1); raise KeyError("x")
+        with pytest.raises(KeyError): h()
+        assert calls == [1] and delays == []
+    def test_wraps():
+        @retry(times=2, sleep=lambda s: None)
+        def named():
+            "doc"
+        assert named.__name__ == "named" and named.__doc__ == "doc"

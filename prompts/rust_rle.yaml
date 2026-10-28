@@ -1,0 +1,17 @@
+lang: rust
+cargo_deps: ""
+prompt: |
+  Напиши на Rust без внешних зависимостей run-length кодирование строк (любые символы Unicode, кроме ASCII-цифр во входе encode):
+  `pub fn encode(s: &str) -> String` — каждая серия одинаковых символов записывается как число и символ, число всегда пишется:
+  `"aaabcc"` -> `"3a1b2c"`, `"ёёж"` -> `"2ё1ж"`, `""` -> `""`.
+  `pub fn decode(s: &str) -> Result<String, String>` — обратное преобразование, числа могут быть многозначными (`"12a"`).
+  `Err`, если у символа нет числа (`"a"`), число равно 0 (`"0a"`), строка кончается числом (`"3a2"`).
+  Верни только один блок кода с содержимым lib.rs, без main и без пояснений.
+files:
+  test: |
+    use bench::*;
+    #[test] fn enc() { assert_eq!(encode("aaabcc"), "3a1b2c"); assert_eq!(encode("ёёж"), "2ё1ж"); assert_eq!(encode(""), ""); assert_eq!(encode("abab"), "1a1b1a1b"); }
+    #[test] fn long_run() { let s = "x".repeat(12); assert_eq!(encode(&s), "12x"); assert_eq!(decode("12x").unwrap(), s); }
+    #[test] fn dec() { assert_eq!(decode("3a1b2c").unwrap(), "aaabcc"); assert_eq!(decode("").unwrap(), ""); assert_eq!(decode("2ё1 ").unwrap(), "ёё "); }
+    #[test] fn roundtrip() { for s in ["hello  world", "ааа ббб", "!", "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzy"] { assert_eq!(decode(&encode(s)).unwrap(), s); } }
+    #[test] fn errors() { for s in ["a", "0a", "3a2", "3a1"] { assert!(decode(s).is_err(), "{s:?} must fail"); } }

@@ -1,0 +1,36 @@
+lang: typescript
+prompt: |
+  Напиши на TypeScript (strict) набор утилитных типов и экспортируй их:
+  `DeepReadonly<T>` — рекурсивно readonly для объектов и массивов (функции и примитивы не трогать);
+  `PickByValue<T, V>` — только те ключи T, значения которых присваиваются V;
+  `Mutable<T>` — снять readonly на первом уровне;
+  `Paths<T>` — объединение строковых путей ко всем полям вложенных объектов через точку (массивы не раскрывать),
+  например для `{ a: { b: number }; c: string }` это `"a" | "a.b" | "c"`;
+  `ElementOf<T>` — тип элемента массива или readonly-массива, иначе never.
+  Плюс функцию `export function deepFreeze<T>(o: T): DeepReadonly<T>` (Object.freeze рекурсивно). Без any.
+  Только один блок кода, без пояснений и примеров.
+files:
+  test: |
+    import { deepFreeze, type DeepReadonly, type PickByValue, type Mutable, type Paths, type ElementOf } from "./solution";
+    import assert from "node:assert/strict";
+    type Eq<A, B> = (<X>() => X extends A ? 1 : 2) extends (<X>() => X extends B ? 1 : 2) ? true : false;
+    const yes = <T extends true>() => {}; void yes;
+    type Cfg = { db: { host: string; ports: number[] }; name: string; f: () => void };
+    const cfg = deepFreeze<Cfg>({ db: { host: "h", ports: [1] }, name: "n", f: () => {} });
+    const typeOnly = () => {
+      // @ts-expect-error nested readonly
+      cfg.db.host = "x";
+      // @ts-expect-error readonly array
+      cfg.db.ports.push(2);
+    };
+    void typeOnly;
+    cfg.f();
+    assert.ok(Object.isFrozen(cfg.db) && Object.isFrozen(cfg.db.ports));
+    const r: DeepReadonly<Cfg> = cfg; void r;
+    yes<Eq<PickByValue<{ a: string; b: number; c: string | undefined }, string>, { a: string }>>();
+    yes<Eq<Mutable<{ readonly a: 1; readonly b: 2 }>, { a: 1; b: 2 }>>();
+    yes<Eq<Paths<{ a: { b: number; c: { d: string } }; e: string[] }>, "a" | "a.b" | "a.c" | "a.c.d" | "e">>();
+    yes<Eq<ElementOf<readonly string[]>, string>>();
+    yes<Eq<ElementOf<number[]>, number>>();
+    yes<Eq<ElementOf<string>, never>>();
+    console.log("ok");

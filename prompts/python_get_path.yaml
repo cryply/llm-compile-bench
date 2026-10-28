@@ -1,0 +1,30 @@
+lang: python
+prompt: |
+  Напиши на Python 3.12 (stdlib only) функцию `get_path(obj, path: str, default=None)` — достать значение из вложенных
+  dict/list по пути вида `"a.b[2].c"`, `"[0].x"`, `"users[1].tags[0]"`. Ключи словарей — через точку, индексы списков —
+  неотрицательные целые в квадратных скобках. Если ключа/индекса нет или тип не тот (индекс у dict, ключ у list) — вернуть default.
+  Пустой path возвращает сам obj. Синтаксически неверный путь (`"a..b"`, `"a[x]"`, `"a[1"`, `"a."`, `"[-1]"`) — `ValueError`.
+  Только один блок кода, без пояснений и без примеров.
+files:
+  test: |
+    import pytest
+    from solution import get_path
+    D = {"a": {"b": [10, 20, {"c": "deep"}]}, "users": [{"tags": ["x"]}, {"tags": ["y", "z"]}], "n": None}
+    def test_ok():
+        assert get_path(D, "a.b[2].c") == "deep"
+        assert get_path(D, "users[1].tags[0]") == "y"
+        assert get_path([{"x": 1}], "[0].x") == 1
+        assert get_path(D, "a.b[0]") == 10
+        assert get_path(D, "") is D
+    def test_none_value_is_not_missing():
+        assert get_path(D, "n", default=5) is None
+    def test_missing():
+        assert get_path(D, "a.zzz") is None
+        assert get_path(D, "a.b[9]", default=-1) == -1
+        assert get_path(D, "a[0]", default="d") == "d"
+        assert get_path(D, "a.b.c", default="d") == "d"
+        assert get_path(D, "a.b[0].x", default="d") == "d"
+    @pytest.mark.parametrize("p", ["a..b", "a[x]", "a[1", "a.", "[-1]", ".a", "a]"])
+    def test_bad(p):
+        with pytest.raises(ValueError):
+            get_path(D, p)

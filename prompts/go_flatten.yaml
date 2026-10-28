@@ -1,0 +1,22 @@
+lang: go
+prompt: |
+  Напиши на Go (stdlib only, package bench) функцию `func Flatten(data []byte) (map[string]any, error)`.
+  На входе JSON, верхний уровень обязан быть объектом (иначе ошибка, как и на невалидном JSON).
+  Вложенные ключи склеиваются через точку, индексы массивов пишутся числами: `{"a":{"b":[1,{"c":true}]}}` ->
+  `{"a.b.0": 1.0, "a.b.1.c": true}`. Листья — значения в том виде, как их отдаёт encoding/json в any
+  (float64, string, bool, nil). Пустые объекты и массивы не дают ключей. Только один блок кода с package bench и импортами, без main и пояснений.
+files:
+  test: |
+    package bench
+    import ("reflect"; "testing")
+    func TestFlatten(t *testing.T) {
+      got, err := Flatten([]byte(`{"a":{"b":[1,{"c":true}]},"s":"x","n":null,"e":{},"ea":[],"m":[[2,3]]}`))
+      if err != nil { t.Fatal(err) }
+      want := map[string]any{"a.b.0": 1.0, "a.b.1.c": true, "s": "x", "n": nil, "m.0.0": 2.0, "m.0.1": 3.0}
+      if !reflect.DeepEqual(got, want) { t.Fatalf("got %#v", got) }
+    }
+    func TestFlattenErrors(t *testing.T) {
+      for _, s := range []string{`[1,2]`, `"x"`, `{"a":`, ``} {
+        if _, err := Flatten([]byte(s)); err == nil { t.Fatalf("%q must fail", s) } }
+      got, err := Flatten([]byte(`{}`)); if err != nil || len(got) != 0 { t.Fatal("empty") }
+    }

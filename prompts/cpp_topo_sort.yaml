@@ -1,0 +1,27 @@
+lang: cpp
+prompt: |
+  Напиши на C++20 header-only функцию
+  `std::optional<std::vector<std::string>> topo_sort(const std::map<std::string, std::vector<std::string>>& deps)`.
+  `deps[x]` — список узлов, от которых зависит x; узлы, встречающиеся только в списках, тоже входят в результат.
+  Каждый узел должен идти после всех своих зависимостей. Если готовых узлов несколько, брать лексикографически наименьший
+  (результат однозначен). При цикле (включая петлю на себя) вернуть std::nullopt.
+  Только один блок кода — содержимое заголовка solution.hpp, со всеми #include, без main и пояснений.
+files:
+  test: |
+    #include "solution.hpp"
+    #include <cassert>
+    using V = std::vector<std::string>;
+    int main() {
+      auto r = topo_sort({{"app", {"lib", "util"}}, {"lib", {"util"}}, {"test", {"app"}}});
+      assert(r && *r == (V{"util", "lib", "app", "test"}));
+      r = topo_sort({{"b", {}}, {"a", {}}, {"c", {"a"}}});
+      assert(r && *r == (V{"a", "b", "c"}));
+      r = topo_sort({{"z", {"y", "x"}}, {"w", {}}});
+      assert(r && *r == (V{"w", "x", "y", "z"}));
+      r = topo_sort({{"a", {"b", "b"}}});
+      assert(r && *r == (V{"b", "a"}));
+      assert(!topo_sort({{"a", {"b"}}, {"b", {"c"}}, {"c", {"a"}}}));
+      assert(!topo_sort({{"a", {"a"}}}));
+      r = topo_sort({}); assert(r && r->empty());
+      return 0;
+    }

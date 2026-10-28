@@ -1,0 +1,30 @@
+lang: go
+prompt: |
+  Напиши на Go (stdlib only, package bench) функцию `func MergeSorted(ctx context.Context, ins ...<-chan int) <-chan int`.
+  Каждый входной канал выдаёт числа по неубыванию и когда-то закрывается. Выходной канал выдаёт все числа из всех входов
+  по неубыванию (k-way merge, не собирать всё в память) и закрывается, когда закрыты все входы или отменён ctx.
+  Горутина не должна утекать при отмене ctx. Только один блок кода с package bench и импортами, без main и пояснений.
+files:
+  test: |
+    package bench
+    import ("context"; "testing"; "time")
+    func src(xs ...int) <-chan int { c := make(chan int); go func() { defer close(c); for _, x := range xs { c <- x } }(); return c }
+    func TestMerge(t *testing.T) {
+      out := MergeSorted(context.Background(), src(1, 4, 9), src(), src(2, 2, 3, 10), src(0))
+      var got []int; for v := range out { got = append(got, v) }
+      want := []int{0, 1, 2, 2, 3, 4, 9, 10}
+      if len(got) != len(want) { t.Fatalf("%v", got) }
+      for i := range want { if got[i] != want[i] { t.Fatalf("%v", got) } }
+    }
+    func TestNoInputs(t *testing.T) {
+      for range MergeSorted(context.Background()) { t.Fatal("must be empty") }
+    }
+    func TestCancel(t *testing.T) {
+      inf := make(chan int); go func() { for i := 0; ; i++ { inf <- i } }()
+      ctx, cancel := context.WithCancel(context.Background())
+      out := MergeSorted(ctx, inf)
+      <-out; <-out; cancel()
+      done := make(chan struct{})
+      go func() { for range out {}; close(done) }()
+      select { case <-done: case <-time.After(time.Second): t.Fatal("out not closed after cancel") }
+    }

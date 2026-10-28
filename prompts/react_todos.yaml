@@ -1,0 +1,25 @@
+lang: react
+prompt: |
+  Напиши на TypeScript+React 18 (function components, hooks, без внешних библиотек кроме react):
+  `export type Todo = { id: number; text: string; done: boolean }`;
+  хук `export function useTodos(initial?: Todo[]): { todos: Todo[]; add: (text: string) => void; toggle: (id: number) => void; remove: (id: number) => void; remaining: number }`
+  (id новых задач уникальны, remaining — число невыполненных; используй useReducer);
+  компонент `export function TodoList(props: { initial?: Todo[] }): JSX.Element` с полем ввода, кнопкой добавления,
+  чекбоксом и кнопкой удаления у каждой задачи и счётчиком remaining. Строгая типизация, без any. Только один блок кода .tsx, без пояснений.
+files:
+  test: |
+    import { TodoList, useTodos, type Todo } from "./solution";
+    import type { JSX } from "react";
+    const t: Todo = { id: 1, text: "a", done: false };
+    const el: JSX.Element = <TodoList initial={[t]} />; void el;
+    const el2: JSX.Element = <TodoList />; void el2;
+    type H = ReturnType<typeof useTodos>;
+    const f = (h: H): number => { h.add("x"); h.toggle(1); h.remove(1); const n: number = h.remaining; const list: Todo[] = h.todos; return n + list.length; };
+    void f;
+    const g = (h: H) => {
+      // @ts-expect-error id is a number
+      h.toggle("1");
+      // @ts-expect-error todo requires done
+      const bad: Todo = { id: 1, text: "x" }; void bad;
+    };
+    void g;

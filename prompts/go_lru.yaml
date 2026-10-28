@@ -1,0 +1,28 @@
+lang: go
+prompt: |
+  Напиши на Go (stdlib only, package bench) обобщённый потокобезопасный LRU-кэш:
+  `type LRU[K comparable, V any] struct`, `func NewLRU[K comparable, V any](capacity int) *LRU[K, V]`,
+  `func (c *LRU[K, V]) Get(key K) (V, bool)` (обновляет recency), `func (c *LRU[K, V]) Put(key K, value V)`
+  (при переполнении вытесняет наименее недавно использованный), `func (c *LRU[K, V]) Len() int`. O(1) на операцию.
+  Только один блок кода с package bench и импортами, без main и пояснений.
+files:
+  test: |
+    package bench
+    import ("sync"; "testing")
+    func TestLRU(t *testing.T) {
+      c := NewLRU[string, int](2)
+      c.Put("a", 1); c.Put("b", 2)
+      if v, ok := c.Get("a"); !ok || v != 1 { t.Fatal("a") }
+      c.Put("c", 3)
+      if _, ok := c.Get("b"); ok { t.Fatal("b must be evicted") }
+      c.Put("a", 10)
+      if v, _ := c.Get("a"); v != 10 { t.Fatal("update") }
+      if c.Len() != 2 { t.Fatalf("len %d", c.Len()) }
+    }
+    func TestConcurrent(t *testing.T) {
+      c := NewLRU[int, int](64); var wg sync.WaitGroup
+      for g := 0; g < 8; g++ { wg.Add(1); go func(g int) { defer wg.Done()
+        for i := 0; i < 2000; i++ { c.Put(i%100, g); c.Get(i % 50) } }(g) }
+      wg.Wait()
+      if c.Len() != 64 { t.Fatalf("len %d", c.Len()) }
+    }

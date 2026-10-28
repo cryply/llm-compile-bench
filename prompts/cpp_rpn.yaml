@@ -1,0 +1,25 @@
+lang: cpp
+prompt: |
+  Напиши на C++20 header-only функцию `double eval_rpn(const std::string& expr)` — вычисление выражения в обратной польской записи.
+  Токены разделены одним или несколькими пробелами; числа могут быть отрицательными и десятичными (`-3.5`); операторы `+ - * /`.
+  Бросать `std::invalid_argument` при: пустом выражении, нехватке операндов, лишних операндах в конце, неизвестном токене,
+  делении на ноль. Только один блок кода — содержимое заголовка solution.hpp, со всеми #include, без main и пояснений.
+files:
+  test: |
+    #include "solution.hpp"
+    #include <cassert>
+    #include <cmath>
+    #include <stdexcept>
+    #include <string>
+    static bool throws(const std::string& s) { try { eval_rpn(s); } catch (const std::invalid_argument&) { return true; } return false; }
+    int main() {
+      assert(eval_rpn("3 4 +") == 7);
+      assert(eval_rpn("5 1 2 + 4 * + 3 -") == 14);
+      assert(eval_rpn("10 4 /") == 2.5);
+      assert(eval_rpn("  2   -3.5  * ") == -7);
+      assert(eval_rpn("8 3 -") == 5);
+      assert(eval_rpn("42") == 42);
+      assert(throws("")); assert(throws("   ")); assert(throws("1 +")); assert(throws("1 2"));
+      assert(throws("1 2 ^")); assert(throws("1 0 /")); assert(throws("abc"));
+      return 0;
+    }

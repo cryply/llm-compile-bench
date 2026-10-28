@@ -1,0 +1,31 @@
+lang: react
+prompt: |
+  Напиши на TypeScript+React 18 (hooks, без внешних библиотек кроме react) хук формы
+  `export function useForm<T extends Record<string, string>>(initial: T, validate?: (v: T) => Partial<Record<keyof T, string>>)`,
+  возвращающий `{ values: T; errors: Partial<Record<keyof T, string>>; setValue: <K extends keyof T>(key: K, value: string) => void;
+  reset: () => void; register: <K extends keyof T & string>(key: K) => { name: K; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void };
+  handleSubmit: (onValid: (v: T) => void) => (e: React.FormEvent<HTMLFormElement>) => void }` (handleSubmit вызывает preventDefault,
+  валидирует, при ошибках сохраняет errors и не вызывает onValid). И компонент
+  `export function LoginForm(props: { onLogin: (v: { email: string; password: string }) => void }): JSX.Element`
+  на этом хуке. Строгая типизация, без any. Только один блок кода .tsx, без пояснений.
+files:
+  test: |
+    import { useForm, LoginForm } from "./solution";
+    import type { JSX } from "react";
+    const el: JSX.Element = <LoginForm onLogin={(v) => { const e: string = v.email; void e; }} />; void el;
+    type F = ReturnType<typeof useForm<{ email: string; password: string }>>;
+    const f = (h: F) => {
+      const p = h.register("email"); const n: "email" = p.name; void n;
+      const input = <input {...h.register("password")} />; void input;
+      h.setValue("password", "x");
+      const err: string | undefined = h.errors.email; void err;
+      const form = <form onSubmit={h.handleSubmit((v) => { const s: string = v.password; void s; })} />; void form;
+    };
+    void f;
+    const g = (h: F) => {
+      // @ts-expect-error unknown field
+      h.register("nope");
+      // @ts-expect-error unknown field
+      h.setValue("age", "1");
+    };
+    void g;

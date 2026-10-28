@@ -1,0 +1,25 @@
+lang: typescript
+prompt: |
+  Напиши на TypeScript (strict) `export async function pool<T>(tasks: ReadonlyArray<() => Promise<T>>, limit: number): Promise<T[]>`.
+  Одновременно выполняется не больше limit задач; задача (функция) вызывается только в момент запуска; результаты в исходном
+  порядке. При первом reject промис pool отклоняется этой ошибкой и новые задачи больше не запускаются.
+  limit < 1 — бросить RangeError. Без any. Только один блок кода, без пояснений и примеров.
+files:
+  test: |
+    import { pool } from "./solution";
+    import assert from "node:assert/strict";
+    const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+    (async () => {
+      let now = 0, peak = 0;
+      const tasks = Array.from({ length: 10 }, (_, i) => async () => { now++; peak = Math.max(peak, now); await sleep(5 + ((i * 7) % 4) * 5); now--; return i * 3; });
+      assert.deepEqual(await pool(tasks, 3), Array.from({ length: 10 }, (_, i) => i * 3));
+      assert.equal(peak, 3);
+      const started: number[] = [];
+      const bad = Array.from({ length: 8 }, (_, i) => async () => { started.push(i); await sleep(10); if (i === 1) throw new Error("boom"); return i; });
+      await assert.rejects(pool(bad, 2), /boom/);
+      await sleep(50);
+      assert.ok(started.length <= 3, `started ${started}`);
+      assert.deepEqual(await pool([], 2), []);
+      await assert.rejects(async () => pool([async () => 1], 0), RangeError);
+      console.log("ok");
+    })();

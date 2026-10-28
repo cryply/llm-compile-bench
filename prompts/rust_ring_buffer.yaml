@@ -1,0 +1,33 @@
+lang: rust
+cargo_deps: ""
+prompt: |
+  Напиши на Rust без внешних зависимостей и без unsafe обобщённый кольцевой буфер `pub struct RingBuffer<T>` фиксированной ёмкости.
+  Методы: `pub fn new(capacity: usize) -> Self` (panic при 0), `pub fn push(&mut self, v: T) -> Option<T>`
+  (при заполненном буфере вытесняет самый старый элемент и возвращает его), `pub fn pop(&mut self) -> Option<T>`
+  (забирает самый старый), `pub fn len(&self) -> usize`, `pub fn is_empty(&self) -> bool`, `pub fn capacity(&self) -> usize`,
+  `pub fn iter(&self) -> impl Iterator<Item = &T> + '_` (от старого к новому). T не обязан быть Clone или Default.
+  Верни только один блок кода с содержимым lib.rs, без main и без пояснений.
+files:
+  test: |
+    use bench::*;
+    #[derive(Debug, PartialEq)] struct NoClone(u32);
+    #[test] fn overwrite() {
+        let mut b = RingBuffer::new(3);
+        assert_eq!(b.push(NoClone(1)), None); b.push(NoClone(2)); b.push(NoClone(3));
+        assert_eq!(b.push(NoClone(4)), Some(NoClone(1)));
+        assert_eq!(b.iter().map(|x| x.0).collect::<Vec<_>>(), vec![2, 3, 4]);
+        assert_eq!(b.len(), 3); assert_eq!(b.capacity(), 3);
+    }
+    #[test] fn pop_order() {
+        let mut b = RingBuffer::new(2);
+        b.push(String::from("a")); b.push(String::from("b")); b.push(String::from("c"));
+        assert_eq!(b.pop().as_deref(), Some("b")); assert_eq!(b.pop().as_deref(), Some("c"));
+        assert_eq!(b.pop(), None); assert!(b.is_empty());
+    }
+    #[test] fn wrap_many() {
+        let mut b = RingBuffer::new(4);
+        for i in 0..10 { b.push(i); if i % 3 == 0 { b.pop(); } }
+        let v: Vec<i32> = b.iter().copied().collect();
+        assert_eq!(v, vec![7, 8, 9]);
+    }
+    #[test] #[should_panic] fn zero() { let _ = RingBuffer::<u8>::new(0); }

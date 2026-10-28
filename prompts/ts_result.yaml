@@ -1,0 +1,33 @@
+lang: typescript
+prompt: |
+  Напиши на TypeScript (strict) модуль Result в стиле Rust:
+  `export type Result<T, E> = { ok: true; value: T } | { ok: false; error: E }`,
+  `export function ok<T>(value: T): Result<T, never>`, `export function err<E>(error: E): Result<never, E>`,
+  `export function map<T, U, E>(r: Result<T, E>, f: (v: T) => U): Result<U, E>`,
+  `export function mapErr<T, E, F>(r: Result<T, E>, f: (e: E) => F): Result<T, F>`,
+  `export function andThen<T, U, E, F>(r: Result<T, E>, f: (v: T) => Result<U, F>): Result<U, E | F>`,
+  `export function unwrapOr<T, E>(r: Result<T, E>, fallback: T): T`,
+  `export function tryCatch<T>(f: () => T): Result<T, unknown>`,
+  `export function all<T, E>(rs: Result<T, E>[]): Result<T[], E>` (первая ошибка или массив значений). Без any.
+  Только один блок кода, без пояснений и примеров.
+files:
+  test: |
+    import { ok, err, map, mapErr, andThen, unwrapOr, tryCatch, all, type Result } from "./solution";
+    import assert from "node:assert/strict";
+    const parse = (s: string): Result<number, string> => { const n = Number(s); return Number.isNaN(n) ? err(`bad ${s}`) : ok(n); };
+    const r1 = map(parse("21"), (n) => n * 2);
+    if (r1.ok) { const v: number = r1.value; void v; } else { const e: string = r1.error; void e; }
+    // @ts-expect-error value is not accessible without narrowing
+    void r1.value;
+    assert.deepEqual(r1, { ok: true, value: 42 });
+    assert.deepEqual(mapErr(parse("x"), (e) => e.length), { ok: false, error: 5 });
+    const chained: Result<number, string | Error> = andThen(parse("4"), (n) => (n > 3 ? err(new Error("big")) : ok(n)));
+    assert.equal(chained.ok, false);
+    assert.equal(unwrapOr(parse("q"), 7), 7); assert.equal(unwrapOr(parse("3"), 7), 3);
+    const t = tryCatch(() => JSON.parse("{")); assert.equal(t.ok, false);
+    assert.deepEqual(tryCatch(() => 5), { ok: true, value: 5 });
+    assert.deepEqual(all([parse("1"), parse("2")]), { ok: true, value: [1, 2] });
+    assert.deepEqual(all([parse("1"), parse("a"), parse("b")]), { ok: false, error: "bad a" });
+    // @ts-expect-error fallback must match T
+    unwrapOr(parse("1"), "s");
+    console.log("ok");

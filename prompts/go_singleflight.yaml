@@ -1,0 +1,30 @@
+lang: go
+prompt: |
+  Напиши на Go (stdlib only, package bench) подавление дублирующихся вызовов (как golang.org/x/sync/singleflight, но сам):
+  `type Group struct` — нулевое значение готово к использованию;
+  `func (g *Group) Do(key string, fn func() (any, error)) (v any, err error, shared bool)`.
+  Если для key уже выполняется вызов, новый вызывающий не запускает fn, а ждёт и получает тот же результат.
+  shared = true, если результат получили больше одного вызывающего. После завершения следующий Do с тем же key снова вызывает fn.
+  Только один блок кода с package bench и импортами, без main и пояснений.
+files:
+  test: |
+    package bench
+    import ("errors"; "sync"; "sync/atomic"; "testing"; "time")
+    func TestDedup(t *testing.T) {
+      var g Group; var calls int32; var wg sync.WaitGroup; start := make(chan struct{})
+      res := make([]any, 10); sh := make([]bool, 10)
+      for i := 0; i < 10; i++ { wg.Add(1); go func(i int) { defer wg.Done(); <-start
+        v, err, s := g.Do("k", func() (any, error) { atomic.AddInt32(&calls, 1); time.Sleep(100 * time.Millisecond); return 42, nil })
+        if err != nil { t.Error(err) }; res[i], sh[i] = v, s }(i) }
+      close(start); wg.Wait()
+      if calls != 1 { t.Fatalf("calls=%d", calls) }
+      for i := range res { if res[i] != 42 || !sh[i] { t.Fatalf("i=%d v=%v shared=%v", i, res[i], sh[i]) } }
+      v, _, s := g.Do("k", func() (any, error) { atomic.AddInt32(&calls, 1); return 7, nil })
+      if v != 7 || s || calls != 2 { t.Fatalf("second round v=%v s=%v calls=%d", v, s, calls) }
+    }
+    func TestErrAndKeys(t *testing.T) {
+      var g Group; boom := errors.New("boom")
+      if _, err, _ := g.Do("a", func() (any, error) { return nil, boom }); !errors.Is(err, boom) { t.Fatal(err) }
+      v1, _, _ := g.Do("x", func() (any, error) { return 1, nil }); v2, _, _ := g.Do("y", func() (any, error) { return 2, nil })
+      if v1 != 1 || v2 != 2 { t.Fatal("keys") }
+    }

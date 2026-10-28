@@ -1,0 +1,25 @@
+lang: react
+prompt: |
+  Напиши на TypeScript+React 18 (hooks, без внешних библиотек кроме react):
+  хук `export function useDebouncedValue<T>(value: T, delayMs: number): T` (setTimeout/clearTimeout в useEffect);
+  хук `export function useDebouncedCallback<A extends unknown[]>(fn: (...args: A) => void, delayMs: number): ((...args: A) => void) & { cancel: () => void }`
+  (стабильная ссылка между рендерами, всегда вызывает последнюю версию fn, таймер чистится при размонтировании);
+  компонент `export function SearchBox(props: { onSearch: (q: string) => void; delayMs?: number; placeholder?: string }): JSX.Element`.
+  Строгая типизация, без any. Только один блок кода .tsx, без пояснений.
+files:
+  test: |
+    import { useDebouncedValue, useDebouncedCallback, SearchBox } from "./solution";
+    import type { JSX } from "react";
+    const el: JSX.Element = <SearchBox onSearch={(q) => { const s: string = q; void s; }} delayMs={200} />; void el;
+    const el2: JSX.Element = <SearchBox onSearch={() => {}} />; void el2;
+    const f = () => {
+      const v: number = useDebouncedValue(5, 100); void v;
+      const s: { a: string } = useDebouncedValue({ a: "x" }, 100); void s;
+      const cb = useDebouncedCallback((a: string, b: number) => { void a; void b; }, 100);
+      cb("x", 1); cb.cancel();
+      // @ts-expect-error wrong arg types
+      cb(1, "x");
+    };
+    void f;
+    // @ts-expect-error onSearch is required
+    const bad = <SearchBox />; void bad;

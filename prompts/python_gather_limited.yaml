@@ -1,0 +1,34 @@
+lang: python
+prompt: |
+  Напиши на Python 3.12 (stdlib only, asyncio) корутину
+  `async def gather_limited(factories: list[Callable[[], Awaitable[T]]], limit: int) -> list[T]`.
+  Каждая фабрика при вызове создаёт корутину. Одновременно выполняется не больше limit корутин; фабрика вызывается только
+  тогда, когда корутина реально запускается. Результаты — в исходном порядке. При первом исключении остальные
+  выполняющиеся задачи отменяются, новые не запускаются, исключение пробрасывается. Только один блок кода, без пояснений и без примеров.
+files:
+  test: |
+    import asyncio, pytest
+    from solution import gather_limited
+    def test_order_and_limit():
+        state = {"now": 0, "peak": 0}
+        def mk(i):
+            async def run():
+                state["now"] += 1; state["peak"] = max(state["peak"], state["now"])
+                await asyncio.sleep(0.01 * (5 - i % 5)); state["now"] -= 1; return i * i
+            return run
+        res = asyncio.run(gather_limited([mk(i) for i in range(12)], 3))
+        assert res == [i * i for i in range(12)] and state["peak"] == 3
+    def test_error_cancels():
+        started, cancelled = [], []
+        def mk(i):
+            async def run():
+                started.append(i)
+                if i == 1: await asyncio.sleep(0.01); raise RuntimeError("boom")
+                try: await asyncio.sleep(1)
+                except asyncio.CancelledError: cancelled.append(i); raise
+                return i
+            return run
+        with pytest.raises(RuntimeError): asyncio.run(gather_limited([mk(i) for i in range(10)], 2))
+        assert sorted(started) == [0, 1] and cancelled == [0]
+    def test_empty():
+        assert asyncio.run(gather_limited([], 4)) == []

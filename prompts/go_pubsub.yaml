@@ -1,0 +1,36 @@
+lang: go
+prompt: |
+  Напиши на Go (stdlib only, package bench) потокобезопасный in-memory брокер сообщений по топикам:
+  `type Broker struct`, `func NewBroker(buf int) *Broker` (buf — размер буфера канала каждого подписчика),
+  `func (b *Broker) Subscribe(topic string) (<-chan string, func())` — возвращает канал и функцию отписки, которая закрывает
+  канал и безопасна при повторном вызове; `func (b *Broker) Publish(topic, msg string) int` — неблокирующая рассылка
+  всем подписчикам топика, если у подписчика буфер полон — сообщение для него теряется; возвращает число подписчиков,
+  которым сообщение доставлено; `func (b *Broker) Close()` — закрывает каналы всех подписчиков, после него Publish возвращает 0.
+  Только один блок кода с package bench и импортами, без main и пояснений.
+files:
+  test: |
+    package bench
+    import ("sync"; "testing")
+    func TestPubSub(t *testing.T) {
+      b := NewBroker(2)
+      a, unA := b.Subscribe("x"); c, _ := b.Subscribe("x"); o, _ := b.Subscribe("y")
+      if n := b.Publish("x", "m1"); n != 2 { t.Fatalf("n=%d", n) }
+      if <-a != "m1" || <-c != "m1" { t.Fatal("deliver") }
+      select { case m := <-o: t.Fatalf("leak %q", m); default: }
+      unA(); unA()
+      if _, ok := <-a; ok { t.Fatal("a must be closed") }
+      if n := b.Publish("x", "m2"); n != 1 { t.Fatalf("after unsub n=%d", n) }
+      b.Publish("x", "m3"); if n := b.Publish("x", "m4"); n != 0 { t.Fatalf("full buffer n=%d", n) }
+      if <-c != "m2" || <-c != "m3" { t.Fatal("order") }
+      b.Close()
+      if _, ok := <-o; ok { t.Fatal("o must be closed") }
+      if n := b.Publish("x", "z"); n != 0 { t.Fatal("publish after close") }
+    }
+    func TestConcurrentPubSub(t *testing.T) {
+      b := NewBroker(1000); ch, un := b.Subscribe("t"); var wg sync.WaitGroup
+      for g := 0; g < 10; g++ { wg.Add(1); go func() { defer wg.Done(); for i := 0; i < 50; i++ { b.Publish("t", "m") } }() }
+      for g := 0; g < 5; g++ { wg.Add(1); go func() { defer wg.Done(); _, u := b.Subscribe("t"); u() }() }
+      wg.Wait(); un()
+      n := 0; for range ch { n++ }
+      if n != 500 { t.Fatalf("got %d", n) }
+    }

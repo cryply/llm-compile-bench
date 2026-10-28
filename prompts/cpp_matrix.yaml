@@ -1,0 +1,27 @@
+lang: cpp
+prompt: |
+  Напиши на C++20 header-only шаблон `template<class T> class Matrix` (хранение в std::vector<T>, построчно):
+  `Matrix(size_t rows, size_t cols, T init = T{})`, `size_t rows() const`, `size_t cols() const`,
+  `T& at(size_t r, size_t c)` и const-версия — бросают `std::out_of_range` при выходе за границы,
+  `Matrix operator*(const Matrix& o) const` — бросает `std::invalid_argument` при несовпадении размеров,
+  `Matrix transpose() const`, `bool operator==(const Matrix& o) const`, `static Matrix identity(size_t n)`.
+  Только один блок кода — содержимое заголовка solution.hpp, со всеми #include, без main и пояснений.
+files:
+  test: |
+    #include "solution.hpp"
+    #include <cassert>
+    #include <stdexcept>
+    int main() {
+      Matrix<int> a(2, 3);
+      int k = 1; for (size_t r = 0; r < 2; ++r) for (size_t c = 0; c < 3; ++c) a.at(r, c) = k++;
+      auto t = a.transpose(); assert(t.rows() == 3 && t.cols() == 2); assert(t.at(2, 1) == 6 && t.at(0, 1) == 4);
+      auto p = a * t; assert(p.rows() == 2 && p.cols() == 2);
+      assert(p.at(0, 0) == 14 && p.at(0, 1) == 32 && p.at(1, 0) == 32 && p.at(1, 1) == 77);
+      assert(a * Matrix<int>::identity(3) == a);
+      assert(!(a == t));
+      bool thrown = false; try { (void)(a * a); } catch (const std::invalid_argument&) { thrown = true; } assert(thrown);
+      thrown = false; try { (void)a.at(2, 0); } catch (const std::out_of_range&) { thrown = true; } assert(thrown);
+      const Matrix<double> c(1, 1, 2.5); assert(c.at(0, 0) == 2.5);
+      thrown = false; try { (void)c.at(0, 1); } catch (const std::out_of_range&) { thrown = true; } assert(thrown);
+      return 0;
+    }

@@ -1,0 +1,22 @@
+lang: rust
+cargo_deps: ""
+prompt: |
+  Напиши на Rust без внешних зависимостей `pub struct Trie` (префиксное дерево слов, любые символы Unicode) с методами:
+  `pub fn new() -> Self`, `pub fn insert(&mut self, word: &str)`, `pub fn contains(&self, word: &str) -> bool`,
+  `pub fn starts_with(&self, prefix: &str) -> bool`, `pub fn words_with_prefix(&self, prefix: &str) -> Vec<String>`
+  (все слова с этим префиксом, отсортированные лексикографически), `pub fn len(&self) -> usize` (число различных слов).
+  Повторная вставка того же слова len не меняет. Верни только один блок кода с содержимым lib.rs, без main и без пояснений.
+files:
+  test: |
+    use bench::*;
+    fn t() -> Trie { let mut t = Trie::new(); for w in ["car", "cart", "care", "cat", "dog", "ёж", "ёлка"] { t.insert(w); } t }
+    #[test] fn contains() { let t = t(); assert!(t.contains("car")); assert!(!t.contains("ca")); assert!(t.contains("ёж")); }
+    #[test] fn prefix() { let t = t(); assert!(t.starts_with("ca")); assert!(t.starts_with("")); assert!(!t.starts_with("x")); }
+    #[test] fn words() {
+        let t = t();
+        assert_eq!(t.words_with_prefix("car"), vec!["car", "care", "cart"]);
+        assert_eq!(t.words_with_prefix("ё"), vec!["ёж", "ёлка"]);
+        assert!(t.words_with_prefix("z").is_empty());
+        assert_eq!(t.words_with_prefix("").len(), 7);
+    }
+    #[test] fn len_dedup() { let mut t = t(); assert_eq!(t.len(), 7); t.insert("car"); assert_eq!(t.len(), 7); t.insert("ca"); assert_eq!(t.len(), 8); }

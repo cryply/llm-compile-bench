@@ -1,0 +1,24 @@
+lang: typescript
+prompt: |
+  Напиши на TypeScript (strict) `export function deepEqual(a: unknown, b: unknown): boolean` — структурное сравнение:
+  примитивы через Object.is, но `+0` и `-0` равны (NaN равен NaN); массивы — поэлементно; обычные объекты — одинаковый набор
+  собственных перечислимых ключей и равные значения; Date — по времени; RegExp — по source и flags; Map — одинаковые ключи
+  (по SameValueZero) и deepEqual значения; Set — одинаковые элементы (по SameValueZero). Разные типы (массив и объект,
+  Date и объект, Map и Set) не равны. Циклические ссылки поддерживать не нужно. Без any.
+  Только один блок кода, без пояснений и примеров.
+files:
+  test: |
+    import { deepEqual as eq } from "./solution";
+    import assert from "node:assert/strict";
+    assert.ok(eq(1, 1)); assert.ok(eq(NaN, NaN)); assert.ok(eq(0, -0)); assert.ok(!eq(1, "1")); assert.ok(eq(null, null)); assert.ok(!eq(null, undefined));
+    assert.ok(eq({ a: [1, { b: 2 }], c: "x" }, { c: "x", a: [1, { b: 2 }] }));
+    assert.ok(!eq({ a: 1 }, { a: 1, b: undefined }));
+    assert.ok(!eq([1, 2], { 0: 1, 1: 2 })); assert.ok(!eq([1, 2], [1, 2, 3]));
+    assert.ok(eq(new Date(5), new Date(5))); assert.ok(!eq(new Date(5), new Date(6))); assert.ok(!eq(new Date(5), {}));
+    assert.ok(eq(/a+/g, /a+/g)); assert.ok(!eq(/a+/g, /a+/i));
+    assert.ok(eq(new Map([["k", { x: 1 }]]), new Map([["k", { x: 1 }]])));
+    assert.ok(!eq(new Map([["k", 1]]), new Map([["k", 2]]))); assert.ok(!eq(new Map([["k", 1]]), new Map([["j", 1]])));
+    assert.ok(eq(new Set([1, 2, NaN]), new Set([NaN, 2, 1]))); assert.ok(!eq(new Set([1]), new Set([2])));
+    assert.ok(!eq(new Map(), new Set())); assert.ok(!eq({}, []));
+    assert.ok(eq({ m: new Map([[1, [new Date(1)]]]) }, { m: new Map([[1, [new Date(1)]]]) }));
+    console.log("ok");

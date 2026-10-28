@@ -1,0 +1,27 @@
+lang: react
+prompt: |
+  Напиши на TypeScript+React 18 (hooks, context, без внешних библиотек кроме react):
+  `export type Theme = "light" | "dark"`;
+  `export function ThemeProvider(props: { children: React.ReactNode; initial?: Theme }): JSX.Element`;
+  `export function useTheme(): { theme: Theme; toggle: () => void; setTheme: (t: Theme) => void }` — бросает Error,
+  если вызван вне ThemeProvider (контекст без значения по умолчанию, значение мемоизировано через useMemo);
+  `export function ThemeToggle(): JSX.Element` — кнопка, переключающая тему и показывающая текущую.
+  Строгая типизация, без any. Только один блок кода .tsx, без пояснений.
+files:
+  test: |
+    import { ThemeProvider, ThemeToggle, useTheme, type Theme } from "./solution";
+    import type { JSX } from "react";
+    const el: JSX.Element = <ThemeProvider initial="dark"><ThemeToggle /><p>x</p></ThemeProvider>; void el;
+    const el2: JSX.Element = <ThemeProvider><ThemeToggle /></ThemeProvider>; void el2;
+    const f = () => { const t = useTheme(); const th: Theme = t.theme; t.setTheme("light"); t.toggle(); return th; };
+    void f;
+    const g = () => {
+      const t = useTheme();
+      // @ts-expect-error only light | dark
+      t.setTheme("blue");
+      // @ts-expect-error theme is not a boolean
+      const b: boolean = t.theme; void b;
+    };
+    void g;
+    // @ts-expect-error invalid initial theme
+    const bad = <ThemeProvider initial="sepia"><p /></ThemeProvider>; void bad;
