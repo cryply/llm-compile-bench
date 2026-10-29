@@ -159,11 +159,16 @@ def main():
             for c in m.get("before", []): sh(c)
             if not wait_ready(m["endpoint"]):
                 print("  endpoint not ready, skip"); continue
+        # модельный request перекрывает общий: медленным моделям (deepseek,
+        # 17 tok/s) 1800 с не хватает на 32k токенов — 28.10 это давало
+        # TimeoutError с wall=0 и портило сводку.
+        mreq = {**req, **m.get("request", {})}
         for pname, p in prompts.items():
             print(f"  {pname} ...", end=" ", flush=True)
             err = ""; c_ok = t_ok = False; wall = tok = toks = 0; reasoning = content = ""
             try:
-                content, reasoning, usage, timings, wall = chat(m["endpoint"], m["model"], p["prompt"], req)
+                t_start = time.time()
+                content, reasoning, usage, timings, wall = chat(m["endpoint"], m["model"], p["prompt"], mreq)
                 tok = usage.get("completion_tokens", 0)
                 toks = timings.get("predicted_per_second") or (tok / wall if wall else 0)
                 d = RESULTS / mname; d.mkdir(exist_ok=True)
@@ -172,7 +177,7 @@ def main():
                 if code is None:
                     # 16000 токенов ровно и пустой ответ — reasoning съел бюджет
                     # (deepseek go_worker_pool, 27.10). Это другой провал.
-                    err = "max_tokens exhausted" if tok >= req["max_tokens"] else "no code block"
+                    err = "max_tokens exhausted" if tok >= mreq["max_tokens"] else "no code block"
                 else:
                     wd = WORK / mname / pname
                     shutil.rmtree(wd, ignore_errors=True)
@@ -185,7 +190,13 @@ def main():
                 c_ok = "test" in str(e.cmd) or "./t" in str(e.cmd)
                 err = f"tests hang: {str(e.cmd)[:60]}"
             except Exception as e:
-                err = repr(e)[:200]
+                # запрос не уложился в timeout_s: это исчерпанный бюджет по
+                # времени, а не ошибка модели; wall — реальное время ожидания
+                if "timed out" in repr(e).lower():
+                    wall = time.time() - t_start
+                    err = "request timeout"
+                else:
+                    err = repr(e)[:200]
             w.writerow([mname, pname, p["lang"], int(c_ok), int(t_ok), f"{wall:.1f}", tok, f"{toks:.1f}",
                         len(reasoning), len(content), err])
             print(f"compile={int(c_ok)} tests={int(t_ok)} {wall:.0f}s {toks:.1f}tok/s {err}", flush=True)

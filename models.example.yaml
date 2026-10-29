@@ -27,6 +27,7 @@ models:
     exclusive: true
     before: ["systemctl --user start llama-deepseek"]
     after:  ["systemctl --user stop llama-deepseek"]
+    request: { timeout_s: 2700 }   # ~17 tok/s: 32k токенов не влезают в 1800 с
 
 # общие параметры запроса
 request:

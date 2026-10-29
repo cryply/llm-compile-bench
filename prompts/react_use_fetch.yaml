@@ -27,4 +27,4 @@ files:
       if (s.status === "done") return;
     };
     void g;
-    const st: FetchState<string> = { status: "idle" }; void st;
+    const st: FetchState<string>["status"] = "idle"; void st;
